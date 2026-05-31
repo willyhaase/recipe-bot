@@ -168,7 +168,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.edit_message_text("😕 Не вдалося завантажити рецепт.")
             return SHOWING_RECIPES
 
+        await query.edit_message_text("🌐 Перекладаю на українську...")
         text = format_recipe(recipe)
+        text = await claude.translate_recipe(text)
         back_btn = InlineKeyboardMarkup([[
             InlineKeyboardButton("⬅️ До списку", callback_data="show_list"),
             InlineKeyboardButton("🏠 До меню", callback_data="back_main"),
