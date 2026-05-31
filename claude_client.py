@@ -3,12 +3,18 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-SYSTEM_PROMPT = """Ти дружній досвідчений шеф-кухар та кулінарний порадник.
+SYSTEM_PROMPT_CHEF = """Ти дружній досвідчений шеф-кухар та кулінарний порадник.
 Відповідай на питання про їжу та кулінарію виключно українською мовою.
 Коли пропонуєш рецепт — давай короткий список інгредієнтів та основні кроки приготування.
 Будь практичним: враховуй час, доступність продуктів, рівень складності.
 Якщо користувач запитує щось не пов'язане з їжею — ввічливо поверни розмову до кулінарної теми.
 Відповідай лаконічно, використовуй емодзі для наочності."""
+
+SYSTEM_PROMPT_TRANSLATE = """Ти перекладач кулінарних рецептів.
+Переклади наданий текст рецепту з англійської на українську мову.
+Зберігай оригінальну структуру та форматування (зірочки, дужки, тире, переноси рядків).
+Назви інгредієнтів перекладай природно — використовуй загальноприйняті українські назви.
+Повертай ТІЛЬКИ перекладений текст, без пояснень та коментарів."""
 
 
 class ClaudeClient:
@@ -16,26 +22,36 @@ class ClaudeClient:
         self.api_key = api_key
         self.client = httpx.AsyncClient(timeout=30.0)
 
+    async def _call(self, system: str, user: str, max_tokens: int = 1024) -> str:
+        resp = await self.client.post(
+            "https://api.anthropic.com/v1/messages",
+            headers={
+                "x-api-key": self.api_key,
+                "anthropic-version": "2023-06-01",
+                "content-type": "application/json",
+            },
+            json={
+                "model": "claude-sonnet-4-20250514",
+                "max_tokens": max_tokens,
+                "system": system,
+                "messages": [{"role": "user", "content": user}],
+            },
+        )
+        resp.raise_for_status()
+        return resp.json()["content"][0]["text"]
+
     async def ask_chef(self, question: str) -> str:
-        """Ask the AI chef a culinary question."""
+        """Ask the AI chef a culinary question in Ukrainian."""
         try:
-            resp = await self.client.post(
-                "https://api.anthropic.com/v1/messages",
-                headers={
-                    "x-api-key": self.api_key,
-                    "anthropic-version": "2023-06-01",
-                    "content-type": "application/json",
-                },
-                json={
-                    "model": "claude-sonnet-4-20250514",
-                    "max_tokens": 1024,
-                    "system": SYSTEM_PROMPT,
-                    "messages": [{"role": "user", "content": question}],
-                },
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            return data["content"][0]["text"]
+            return await self._call(SYSTEM_PROMPT_CHEF, question)
         except Exception as e:
-            logger.error(f"Claude API error: {e}")
+            logger.error(f"Claude chef error: {e}")
             return "😔 Не вдалося отримати відповідь від AI-шефа. Спробуй пізніше."
+
+    async def translate_recipe(self, text: str) -> str:
+        """Translate recipe text from English to Ukrainian."""
+        try:
+            return await self._call(SYSTEM_PROMPT_TRANSLATE, text, max_tokens=2048)
+        except Exception as e:
+            logger.error(f"Claude translate error: {e}")
+            return text  # повертаємо оригінал якщо переклад не вдався
