@@ -205,12 +205,17 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return CHOOSING_MODE
 
-    thinking_msg = await update.message.reply_text("⏳ Шукаю рецепти...")
+    thinking_msg = await update.message.reply_text("⏳ Перекладаю запит...")
+
+    en_text = await claude.translate_query(text)
+    logger.info(f"Query translated: '{text}' → '{en_text}'")
+
+    await thinking_msg.edit_text("🔍 Шукаю рецепти...")
 
     if mode == "ingredients":
-        recipes = await spoonacular.search_by_ingredients(text, number=8)
+        recipes = await spoonacular.search_by_ingredients(en_text, number=8)
     elif mode == "name":
-        recipes = await spoonacular.search_by_name(text, number=8)
+        recipes = await spoonacular.search_by_name(en_text, number=8)
     elif mode == "ai":
         response = await claude.ask_chef(text)
         await thinking_msg.edit_text(
