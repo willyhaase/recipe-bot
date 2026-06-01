@@ -16,6 +16,12 @@ SYSTEM_PROMPT_TRANSLATE = """Ти перекладач кулінарних ре
 Назви інгредієнтів перекладай природно — використовуй загальноприйняті українські назви.
 Повертай ТІЛЬКИ перекладений текст, без пояснень та коментарів."""
 
+SYSTEM_PROMPT_QUERY = """Ти перекладач кулінарних запитів.
+Переклади наданий запит або список інгредієнтів українською/російською мовою на англійську.
+Якщо це список інгредієнтів — переклади кожен через кому.
+Якщо це назва страви — переклади назву.
+Повертай ТІЛЬКИ англійський переклад, без пояснень та коментарів."""
+
 
 class ClaudeClient:
     def __init__(self, api_key: str):
@@ -54,4 +60,12 @@ class ClaudeClient:
             return await self._call(SYSTEM_PROMPT_TRANSLATE, text, max_tokens=2048)
         except Exception as e:
             logger.error(f"Claude translate error: {e}")
-            return text  # повертаємо оригінал якщо переклад не вдався
+            return text
+
+    async def translate_query(self, text: str) -> str:
+        """Translate user query from Ukrainian to English for Spoonacular."""
+        try:
+            return await self._call(SYSTEM_PROMPT_QUERY, text, max_tokens=256)
+        except Exception as e:
+            logger.error(f"Claude query translate error: {e}")
+            return text  # якщо не вдалося — шукаємо як є
