@@ -153,6 +153,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return CHOOSING_MODE
         context.user_data["recipes"] = recipes
+        await query.edit_message_text("🌐 Перекладаю назви...")
+        recipes = await claude.translate_titles(recipes)
+        context.user_data["recipes"] = recipes
         await query.edit_message_text(
             f"✅ Знайшов *{len(recipes)}* рецептів. Обирай:",
             parse_mode=ParseMode.MARKDOWN,
@@ -239,6 +242,9 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return CHOOSING_MODE
 
+    context.user_data["recipes"] = recipes
+    await thinking_msg.edit_text("🌐 Перекладаю назви...")
+    recipes = await claude.translate_titles(recipes)
     context.user_data["recipes"] = recipes
     await thinking_msg.edit_text(
         f"✅ Знайшов *{len(recipes)}* рецептів за запитом «{text}».\nОбирай:",
