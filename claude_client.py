@@ -43,6 +43,8 @@ class ClaudeClient:
                 "messages": [{"role": "user", "content": user}],
             },
         )
+        if resp.status_code != 200:
+            logger.error(f"Anthropic API error {resp.status_code}: {resp.text}")
         resp.raise_for_status()
         return resp.json()["content"][0]["text"]
 
@@ -65,7 +67,9 @@ class ClaudeClient:
     async def translate_query(self, text: str) -> str:
         """Translate user query from Ukrainian to English for Spoonacular."""
         try:
-            return await self._call(SYSTEM_PROMPT_QUERY, text, max_tokens=256)
+            result = await self._call(SYSTEM_PROMPT_QUERY, text, max_tokens=256)
+            logger.info(f"translate_query success: '{text}' → '{result}'")
+            return result
         except Exception as e:
-            logger.error(f"Claude query translate error: {e}")
-            return text  # якщо не вдалося — шукаємо як є
+            logger.error(f"Claude query translate error: {type(e).__name__}: {e}")
+            return text
